@@ -33,28 +33,28 @@ def create_table(results):
     table.add_column("Name", style="green")
     table.add_column("Sharpe (30D)", justify="right")
     table.add_column("ROI (30D)", justify="right")
-    table.add_column("MDD (30D)", justify="right")
     table.add_column("ROI (Life)", justify="right")
-    table.add_column("MDD (Life)", justify="right")
-    table.add_column("Pos", justify="right")
+    table.add_column("Total Profit", justify="right", style="yellow")
+    table.add_column("MDD (Life)", justify="right", style="red")
+    table.add_column("Days", justify="right", style="blue")
+    table.add_column("Copiers", justify="right", style="magenta")
 
     sorted_results = sorted(results, key=lambda x: x["sharpeRatio"], reverse=True)
     for i, r in enumerate(sorted_results[:25]):
         sharpe_color = "green" if r["sharpeRatio"] > 1.5 else ("yellow" if r["sharpeRatio"] > 0.5 else "red")
         roi_30_color = "green" if r["roi_30d"] > 0 else "red"
         roi_life_color = "green" if r["roi"] > 0 else "red"
-        mdd_30_color = "green" if r["mdd_30d"] < 10 else ("yellow" if r["mdd_30d"] < 25 else "red")
-        mdd_life_color = "red"
         
         table.add_row(
             str(i + 1),
             r["traderName"],
             f"[{sharpe_color}]{r['sharpeRatio']:.3f}[/{sharpe_color}]",
             f"[{roi_30_color}]{r['roi_30d']:.2f}%[/{roi_30_color}]",
-            f"[{mdd_30_color}]{r['mdd_30d']:.2f}%[/{mdd_30_color}]",
             f"[{roi_life_color}]{r['roi']:.2f}%[/{roi_life_color}]",
-            f"[{mdd_life_color}]{r['mdd_life']:.2f}%[/{mdd_life_color}]",
-            str(len(r["openPositions"]))
+            r["totalProfit"],
+            f"{r['mdd_life']:.2f}%",
+            str(r["tradeDays"]),
+            str(r["followCount"])
         )
     return table
 
@@ -96,16 +96,23 @@ def run_analysis(limit=DEFAULT_LIMIT):
                     hist = sorted(profit_rates, key=lambda x: int(x.get('cTime', 0)))
                     roi_30d = float(hist[-1].get('rate', 0)) - float(hist[0].get('rate', 0))
                 
-                # 3. ROI (Life)
+                # 3. Stats from columns
                 roi_life = 0
+                total_profit = "$0"
                 columns = t.get("columnList", [])
                 for col in columns:
-                    if col.get("describe") == "ROI":
-                        roi_life = float(col.get("value", 0))
+                    desc = col.get("describe", "")
+                    val = col.get("value", "0")
+                    if desc == "ROI":
+                        roi_life = float(val.replace("%", "").replace(",", ""))
+                    elif desc == "Total PnL":
+                        total_profit = val
                 
-                # 4. Risk & Positions
+                # 4. Risk & Meta
                 mdd_life = float(t.get("maxCallbackRate", 0))
                 open_positions = t.get("currentTradingList", [])
+                trade_days = int(t.get("tradeDays", 0))
+                follow_count = int(t.get("followCount", 0))
                 
                 results.append({
                     "traderName": trader_name,
@@ -113,11 +120,12 @@ def run_analysis(limit=DEFAULT_LIMIT):
                     "sharpeRatio": sharpe_30d,
                     "roi": roi_life,
                     "roi_30d": roi_30d,
+                    "totalProfit": total_profit,
                     "mdd_30d": mdd_30d,
                     "mdd_life": mdd_life,
-                    "winRate": float(t.get("averageWinRate", 0)),
+                    "tradeDays": trade_days,
+                    "followCount": follow_count,
                     "openPositions": open_positions,
-                    "followCount": int(t.get("followCount", 0)),
                     "roiHistory": profit_rates
                 })
                 

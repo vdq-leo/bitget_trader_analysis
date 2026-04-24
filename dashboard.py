@@ -96,7 +96,7 @@ DASHBOARD_TEMPLATE = """
     <div class="container">
         <header>
             <h1>Bitget Elite Trader Dashboard</h1>
-            <p>Evaluating Risk-Adjusted Consistency and Long-Term ROI</p>
+            <p>Evaluating Profitability and Long-Term Consistency</p>
         </header>
 
         <div class="table-container">
@@ -107,9 +107,11 @@ DASHBOARD_TEMPLATE = """
                         <th>Trader</th>
                         <th>Sharpe (30D)</th>
                         <th>ROI (30D)</th>
-                        <th>MDD (30D)</th>
                         <th>ROI (Life)</th>
+                        <th>Total Profit</th>
                         <th>MDD (Life)</th>
+                        <th>Days</th>
+                        <th>Copiers</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -121,11 +123,11 @@ DASHBOARD_TEMPLATE = """
                             {{ t.sharpeRatio | round(3) }}
                         </td>
                         <td class="{{ 'pos' if t.roi_30d > 0 else 'neg' }}">{{ t.roi_30d | round(2) }}%</td>
-                        <td style="color: {{ '#4ade80' if t.mdd_30d < 10 else ('#facc15' if t.mdd_30d < 25 else '#fb7185') }}">
-                            {{ t.mdd_30d | round(2) }}%
-                        </td>
                         <td class="{{ 'pos' if t.roi > 0 else 'neg' }}" style="font-weight:bold;">{{ t.roi | round(2) }}%</td>
+                        <td style="color: var(--warning)">{{ t.totalProfit }}</td>
                         <td class="neg">{{ t.mdd_life | round(2) }}%</td>
+                        <td>{{ t.tradeDays }}</td>
+                        <td>{{ t.followCount }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -148,6 +150,10 @@ DASHBOARD_TEMPLATE = """
 
                 <div class="stats-grid">
                     <div class="stat-card">
+                        <div class="stat-val" style="color: var(--warning)" x-text="traders[selectedTrader].totalProfit"></div>
+                        <div class="stat-label">Total Profit (Life)</div>
+                    </div>
+                    <div class="stat-card">
                         <div class="stat-val" :class="traders[selectedTrader].roi >= 0 ? 'pos' : 'neg'" x-text="traders[selectedTrader].roi.toFixed(2) + '%'"></div>
                         <div class="stat-label">ROI (Life)</div>
                     </div>
@@ -160,8 +166,12 @@ DASHBOARD_TEMPLATE = """
                         <div class="stat-label">Sharpe (30D)</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-val" class="neg" x-text="traders[selectedTrader].mdd_life.toFixed(2) + '%'"></div>
-                        <div class="stat-label">MDD (Life)</div>
+                        <div class="stat-val" style="color: #94a3b8" x-text="traders[selectedTrader].tradeDays"></div>
+                        <div class="stat-label">Active Days</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-val" style="color: var(--accent-color)" x-text="traders[selectedTrader].followCount"></div>
+                        <div class="stat-label">Total Copiers</div>
                     </div>
                 </div>
 
@@ -170,7 +180,7 @@ DASHBOARD_TEMPLATE = """
                 </div>
 
                 <div style="margin-top: 20px;">
-                    <h3>Open Positions (Traces)</h3>
+                    <h3>Open Positions (Active Traces)</h3>
                     <div style="padding: 10px 0;">
                         <template x-for="symbol in traders[selectedTrader].openPositions">
                             <span class="tag" x-text="symbol"></span>
@@ -191,7 +201,7 @@ DASHBOARD_TEMPLATE = """
                 pageLength: 25, 
                 order: [[2, 'desc']],
                 columnDefs: [
-                    { targets: [2,3,4,5,6], className: 'dt-right' }
+                    { targets: [2,3,4,5,6,7,8], className: 'dt-right' }
                 ]
             });
         });

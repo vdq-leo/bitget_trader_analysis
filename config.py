@@ -10,5 +10,5 @@ API_KEY = os.getenv("API_KEY", "")
 API_SECRET = os.getenv("API_SECRET", "")
 PASSPHRASE = os.getenv("PASSPHRASE", "")
 
-DEFAULT_LIMIT = 100
+DEFAULT_LIMIT = 200
 PAGE_SIZE = 20
